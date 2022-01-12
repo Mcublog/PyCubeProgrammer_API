@@ -48,18 +48,18 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
     cdef enum debugPort:
         JTAG = 0,
         SWD = 1,
-        
+
     cdef enum debugResetMode:
         SOFTWARE_RESET,         # Apply a reset by the software.
         HARDWARE_RESET,         # Apply a reset by the hardware.
         CORE_RESET              # Apply a reset by the internal core peripheral.
-        
+
     cdef struct frequencies:
         unsigned int jtagFreq[12]           #  JTAG frequency.
         unsigned int jtagFreqNumber         #  Get JTAG supported frequencies.
         unsigned int swdFreq[12]            #  SWD frequency.
         unsigned int swdFreqNumber          #  Get SWD supported frequencies.
-        
+
     # https://cython.readthedocs.io/en/latest/src/userguide/external_C_code.html#styles-of-struct-union-and-enum-declaration
     cdef struct debugConnectParameters:
         debugPort dbgPort                  # Select the type of debug interface #debugPort.
@@ -77,7 +77,19 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
         int isBridge                       # Indicates if it's Bridge device or not.
         int shared                         # Select connection type, if it's shared, use ST-LINK Server.
         char board[100]                    # board Name
-        int DBG_Sleep 
+        int DBG_Sleep
+
+    cdef struct dfuConnectParameters:
+        char *usb_index
+        char rdu                       # **< request a read unprotect: value in {0,1}.
+
+    cdef struct dfuDeviceInfo:
+        char usbIndex[10]                  # USB index.
+        int busNumber                      # Bus number.
+        int addressNumber                  # Address number.
+        char productId[100]                # Product number.
+        char serialNumber[100]             # Serial number.
+        unsigned int dfuVersion            # DFU version.
 
     # define C typedefs for 3 callback functions.
     ctypedef void (*PCCbInitProgressBar)()
@@ -88,7 +100,7 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
         PCCbInitProgressBar initProgressBar                          # Add a progress bar.
         PCCbLogMessage      logMessage                               # Display internal messages according to verbosity level.
         PCCbLoadBar         loadBar                                  # Display the loading of read/write process.
-        
+
     cdef struct generalInf:
         unsigned short deviceId;  # Device ID.
         int  flashSize;           # Flash memory size.
@@ -104,14 +116,17 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
     int api_checkDeviceConnection "checkDeviceConnection" ()
     int api_getStLinkList "getStLinkList" (debugConnectParameters** stLinkList, int shared)
     int api_connectStLink "connectStLink" (debugConnectParameters debugParameters)
+    int api_getDfuDeviceList "getDfuDeviceList" (dfuDeviceInfo** dfuList, int iPID, int iVID)
+    int api_connectDfuBootloader2 "connectDfuBootloader2" (dfuConnectParameters dfuParameters)
     int api_readMemory "readMemory" (unsigned int address, unsigned char** data, unsigned int byte_qty)
     int api_writeMemory "writeMemory" (unsigned int address, char* data, unsigned int byte_qty)
     void api_disconnect "disconnect" ()
+    int api_readUnprotect "readUnprotect" ()
     generalInf * api_getDeviceGeneralInf "getDeviceGeneralInf" ()
     int api_downloadFile "downloadFile" (const wchar_t* filePath, unsigned int address, unsigned int skipErase, unsigned int verify, const wchar_t* binPath)
     int api_execute "execute" (unsigned int address)
     int api_reset "reset" (debugResetMode rstMode)
-    
+
     void api_setDisplayCallbacks "setDisplayCallbacks" (displayCallBacks c)
     void api_setLoadersPath "setLoadersPath" (const char* path)
 
@@ -119,7 +134,9 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
 cdef class CubeProgrammer_API:
     cdef int c_stlink_connected
     cdef int c_device_connected
+    cdef int c_dfu_connected
     py_stlink_list: []
+    py_dfu_list: []
 
     @property
     def stlink_list(self):
@@ -128,6 +145,14 @@ cdef class CubeProgrammer_API:
     @property
     def stlink_connected(self):
         return self.c_stlink_connected != 0
+
+    @property
+    def dfu_list(self):
+        return self.py_dfu_list
+
+    @property
+    def dfu_connected(self):
+        return self.c_dfu_connected != 0
 
     @property
     def device_connected(self):
@@ -143,6 +168,9 @@ cdef class CubeProgrammer_API:
         self.c_stlink_connected = False
         self.c_device_connected = False
         self.py_stlink_list = None
+
+        self.c_dfu_connected = False
+        self.py_dfu_list = None
 
     def setDisplayCallbacks(self, initProgressBar, logMessage, loadBar):
         global py_cb_InitProgressBar, py_cb_LogMessage, py_cb_LoadBar
@@ -166,6 +194,14 @@ cdef class CubeProgrammer_API:
         self.py_stlink_list = [stLinkList[i] for i in range(stLinkListLen)]
         return self.py_stlink_list
 
+    def getDfuDeviceList(self):
+        global dfuList
+        STM32_BOOT_VID = 0x0483
+        STM32_BOOT_PID = 0xDF11
+        dfuListLen = api_getDfuDeviceList(&dfuList, STM32_BOOT_VID, STM32_BOOT_PID)
+        self.py_dfu_list = [dfuList[i] for i in range(dfuListLen)]
+        return self.py_dfu_list
+
     def connectStLink(self, int index=0) -> int :
         if index >= len(self.py_stlink_list):
             return -1
@@ -175,6 +211,16 @@ cdef class CubeProgrammer_API:
         cdef int err = api_connectStLink(stLinkList[index])
         # print(f'connectStLink: {err}')
         return err
+
+    def connectDfuBootloader2(self, int index=0) -> int:
+        if index >= len(self.py_dfu_list):
+            return -1
+        # print(dfuList[index])
+        cdef dfuConnectParameters c_dfu_connect_parameters = dfuConnectParameters(usb_index = dfuList[index].usbIndex, rdu = 1)
+        cdef int err = api_connectDfuBootloader2(c_dfu_connect_parameters)
+        # print(f"connectDfuLink: {err}")
+        return err
+
 
     def readMemory(self, unsigned int address, unsigned int byte_qty) -> bytearray:
         cdef unsigned char * data
@@ -189,6 +235,9 @@ cdef class CubeProgrammer_API:
     def disconnect(self):
         api_disconnect()
 
+    def readUnprotect(self):
+        return api_readUnprotect()
+
     def getDeviceGeneralInf(self):
         cdef generalInf * p_general_inf = <generalInf *>0
         p_general_inf = api_getDeviceGeneralInf()
@@ -197,7 +246,7 @@ cdef class CubeProgrammer_API:
     def downloadFile(self, filePath, unsigned int address=0x08000000, unsigned int skipErase=0, unsigned int verify=1, binPath=''):
         cdef wchar_t* wfilePath = PyUnicode_AsWideCharString(filePath, NULL)
         cdef wchar_t* wbinPath = PyUnicode_AsWideCharString(binPath, NULL)
-        # print(f'downloadFile, filePath: {filePath}, address: {address}, skipErase: {skipErase}, verify: {verify}')
+        print(f'downloadFile, filePath: {filePath}, address: {address}, skipErase: {skipErase}, verify: {verify}')
         return api_downloadFile(wfilePath, address, skipErase, verify, wbinPath)
 
     def reset(self, debugResetMode rstMode):
@@ -216,19 +265,30 @@ cdef class CubeProgrammer_API:
     '''
     def connection_update(self):
 
+        print(">dupa")
         self.c_device_connected = 1 == self.checkDeviceConnection()
+        print(">dupa")
 
         if not self.c_device_connected:
             self.disconnect()
             self.py_stlink_list = None
             self.c_stlink_connected = False
+            self.py_dfu_list = None
+            self.c_dfu_connected = False
 
         if self.py_stlink_list is None:
             self.getStLinkList()
             self.c_stlink_connected = len(self.py_stlink_list) > 0
 
+        if self.py_dfu_list is None:
+            self.getDfuDeviceList()
+            self.c_dfu_connected = len(self.py_dfu_list) > 0
+
         if len(self.py_stlink_list) == 1 and not self.c_device_connected:
             self.connectStLink()
+
+        if len(self.py_dfu_list) == 1 and not self.c_device_connected:
+            self.connectDfuBootloader2()
 
         self.c_device_connected = 1 == self.checkDeviceConnection()
 
@@ -311,6 +371,7 @@ cdef void c_cb_LoadBar(int x, int n):
 # Globals
 cdef displayCallBacks display_cb_struct = displayCallBacks(logMessage = c_cb_LogMessage, initProgressBar = c_cb_InitProgressBar, loadBar = c_cb_LoadBar)
 cdef debugConnectParameters * stLinkList = <debugConnectParameters *>0
+cdef dfuDeviceInfo * dfuList = <dfuDeviceInfo *>0
 cdef object py_cb_InitProgressBar = None
 cdef object py_cb_LogMessage = None
 cdef object py_cb_LoadBar = None
