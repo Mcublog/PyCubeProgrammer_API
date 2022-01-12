@@ -31,7 +31,13 @@ This Cython/Python wrapper performs default initialization that the C-API omitte
 - CppExample is a Visual Studio project that uses the CubeProgrammer_API, used only to isolate C-vs-Python issues.
 - CubeProgrammer_API.cpp is a temporary intermediate file used by Cython to generate the .pyd file.
 
-## Other similar projects: 
+## Rebuild .pyd
+
+```bash
+ py setup.py build_ext --inplace
+```
+
+## Other similar projects:
 - pyOCD
 - PyStLink
 - OpenOcd
