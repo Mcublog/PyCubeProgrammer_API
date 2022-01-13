@@ -14,7 +14,7 @@ extensions = [
 
 setup(
     name="CubeProgrammer_API",
-    version='0.1',
+    version='0.1.2',
     description='CubeProgrammer_API.py',
     author='Jim Fred',
     author_email='jimfred@jimfred.org',
