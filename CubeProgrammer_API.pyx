@@ -265,9 +265,7 @@ cdef class CubeProgrammer_API:
     '''
     def connection_update(self):
 
-        print(">dupa")
         self.c_device_connected = 1 == self.checkDeviceConnection()
-        print(">dupa")
 
         if not self.c_device_connected:
             self.disconnect()
