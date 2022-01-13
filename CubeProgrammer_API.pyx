@@ -91,6 +91,46 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
         char serialNumber[100]             # Serial number.
         unsigned int dfuVersion            # DFU version.
 
+    cdef struct bitCoefficient_C:
+        unsigned int multiplier         # Bit multiplier. */
+        unsigned int offset             # Bit offset. */
+
+    cdef struct bitValue_C:
+        unsigned int value              # Option bit value. */
+        char description[200]           # Option bit description. */
+
+    cdef struct bit_C:
+        char name[32]                   # Bit name such as RDP, BOR_LEV, nBOOT0... */
+        char description[300]           # Config description. */
+        unsigned int wordOffset        # Word offset. */
+        unsigned int bitOffset         # Bit offset. */
+        unsigned int bitWidth          # Number of bits build the option. */
+        unsigned char access            # Access Read/Write. */
+        unsigned int valuesNbr         # Number of possible values. */
+        bitValue_C** values             # Bits value, #BitValue_C. */
+        bitCoefficient_C equation       # Bits equation, #BitCoefficient_C. */
+        unsigned char* reference
+        unsigned int bitValue
+
+    cdef struct category_C:
+        char name[100]                  # Get category name such as Read Out Protection, BOR Level... */
+        unsigned int bitsNbr           # Get bits number of the considered category. */
+        bit_C** bits                    # Get internal bits descriptions. */
+
+    cdef struct bank_C:
+        unsigned int size               # Bank size. */
+        unsigned int address            # Bank starting address. */
+        unsigned char access            # Bank access Read/Write. */
+        unsigned int categoriesNbr     # Number of option bytes categories. */
+        category_C** categories         # Get bank categories descriptions #Category_C. */
+
+    cdef struct peripheral_C:
+        char name[32]                 # Peripheral name.
+        char description[200]         # Peripheral description.
+        unsigned int banksNbr         # Number of existed banks.
+        bank_C** banks                # Get banks descriptions #Bank_C.
+
+
     # define C typedefs for 3 callback functions.
     ctypedef void (*PCCbInitProgressBar)()
     ctypedef void (*PCCbLogMessage)(int msgType,  const wchar_t* str)
@@ -102,16 +142,16 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
         PCCbLoadBar         loadBar                                  # Display the loading of read/write process.
 
     cdef struct generalInf:
-        unsigned short deviceId;  # Device ID.
-        int  flashSize;           # Flash memory size.
-        int  bootloaderVersion;   # Bootloader version
-        char type[4];             # Device MCU or MPU.
-        char cpu[20];             # Cortex CPU.
-        char name[100];           # Device name.
-        char series[100];         # Device serie.
-        char description[150];    # Take notice.
-        char revisionId[100];     # Revision ID.
-        char board[100];          # Board Rpn.
+        unsigned short deviceId   # Device ID.
+        int  flashSize            # Flash memory size.
+        int  bootloaderVersion    # Bootloader version
+        char type[4]              # Device MCU or MPU.
+        char cpu[20]              # Cortex CPU.
+        char name[100]            # Device name.
+        char series[100]          # Device serie.
+        char description[150]     # Take notice.
+        char revisionId[100]      # Revision ID.
+        char board[100]           # Board Rpn.
 
     int api_checkDeviceConnection "checkDeviceConnection" ()
     int api_getStLinkList "getStLinkList" (debugConnectParameters** stLinkList, int shared)
@@ -129,6 +169,10 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
 
     void api_setDisplayCallbacks "setDisplayCallbacks" (displayCallBacks c)
     void api_setLoadersPath "setLoadersPath" (const char* path)
+
+    int api_sendOptionBytesCmd "sendOptionBytesCmd" (char* command)
+    peripheral_C* api_initOptionBytesInterface "initOptionBytesInterface" ()
+    int api_obDisplay "obDisplay" ()
 
 
 cdef class CubeProgrammer_API:
@@ -202,6 +246,29 @@ cdef class CubeProgrammer_API:
         self.py_dfu_list = [dfuList[i] for i in range(dfuListLen)]
         return self.py_dfu_list
 
+    def setOptionBytes(self):
+        # return sendOptionBytesCmd(char* command);
+        pass
+
+    def initOptionBytesInterface(self):
+        cdef peripheral_C* peripheral_c = <peripheral_C*> 0
+        cdef bank_C * banks_c = <bank_C *> 0
+        peripheral_c = api_initOptionBytesInterface()
+        peripheral = {}
+        peripheral["name"] = peripheral_c.name
+        peripheral["description"] = peripheral_c.description
+        peripheral["banksNbr"] = peripheral_c.banksNbr
+        banks = []
+        # for i in range(peripheral_c.banksNbr):
+        #     banks.append(peripheral_c.banks[i])
+        # peripheral["banks"] = banks
+        return peripheral
+
+    def displayOptionBytes(self) -> int:
+        '''This function is crashed in .dll'''
+        # return api_obDisplay()
+        pass
+
     def connectStLink(self, int index=0) -> int :
         if index >= len(self.py_stlink_list):
             return -1
@@ -265,9 +332,7 @@ cdef class CubeProgrammer_API:
     '''
     def connection_update(self):
 
-        print(">dupa")
         self.c_device_connected = 1 == self.checkDeviceConnection()
-        print(">dupa")
 
         if not self.c_device_connected:
             self.disconnect()
