@@ -1,5 +1,6 @@
-from distutils.core import setup
+from setuptools import setup
 from distutils.extension import Extension
+
 from Cython.Build import cythonize
 
 extensions = [
@@ -10,6 +11,7 @@ extensions = [
         library_dirs=['./api/lib/'],
     )
 ]
+
 setup(
     name="CubeProgrammer_API",
     version='0.1',
@@ -22,5 +24,5 @@ setup(
             'language_level': "3",
             'always_allow_keywords': True  # https://github.com/cython/cython/issues/2881
         }),
-    requires=['Cython']
+    requires=["Cython"]
 )
