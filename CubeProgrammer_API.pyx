@@ -330,7 +330,7 @@ cdef class CubeProgrammer_API:
     Check connection, USB and SWD, to microcontroller.
     Updates device_connected and stlink_connected
     '''
-    def connection_update(self, rud:int=0):
+    def connection_update(self, rdu:int=0):
 
         try:
             self.c_device_connected = 1 == self.checkDeviceConnection()
