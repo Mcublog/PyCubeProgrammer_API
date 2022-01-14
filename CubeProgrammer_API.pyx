@@ -279,11 +279,11 @@ cdef class CubeProgrammer_API:
         # print(f'connectStLink: {err}')
         return err
 
-    def connectDfuBootloader2(self, int index=0) -> int:
+    def connectDfuBootloader2(self, int index=0, int rdu=0) -> int:
         if index >= len(self.py_dfu_list):
             return -1
         # print(dfuList[index])
-        cdef dfuConnectParameters c_dfu_connect_parameters = dfuConnectParameters(usb_index = dfuList[index].usbIndex, rdu = 1)
+        cdef dfuConnectParameters c_dfu_connect_parameters = dfuConnectParameters(usb_index = dfuList[index].usbIndex, rdu = rdu)
         cdef int err = api_connectDfuBootloader2(c_dfu_connect_parameters)
         # print(f"connectDfuLink: {err}")
         return err
@@ -330,30 +330,33 @@ cdef class CubeProgrammer_API:
     Check connection, USB and SWD, to microcontroller.
     Updates device_connected and stlink_connected
     '''
-    def connection_update(self):
+    def connection_update(self, rud:int=0):
 
-        self.c_device_connected = 1 == self.checkDeviceConnection()
+        try:
+            self.c_device_connected = 1 == self.checkDeviceConnection()
+        except:
+            pass
 
         if not self.c_device_connected:
             self.disconnect()
-            self.py_stlink_list = None
-            self.c_stlink_connected = False
+            # self.py_stlink_list = None
+            # self.c_stlink_connected = False
             self.py_dfu_list = None
             self.c_dfu_connected = False
 
-        if self.py_stlink_list is None:
-            self.getStLinkList()
-            self.c_stlink_connected = len(self.py_stlink_list) > 0
+        # if self.py_stlink_list is None:
+        #     self.getStLinkList()
+        #     self.c_stlink_connected = len(self.py_stlink_list) > 0
 
         if self.py_dfu_list is None:
             self.getDfuDeviceList()
             self.c_dfu_connected = len(self.py_dfu_list) > 0
 
-        if len(self.py_stlink_list) == 1 and not self.c_device_connected:
-            self.connectStLink()
+        # if len(self.py_stlink_list) == 1 and not self.c_device_connected:
+        #     self.connectStLink()
 
         if len(self.py_dfu_list) == 1 and not self.c_device_connected:
-            self.connectDfuBootloader2()
+            self.connectDfuBootloader2(rdu=rdu)
 
         self.c_device_connected = 1 == self.checkDeviceConnection()
 
