@@ -1,7 +1,7 @@
 
 import time
 
-api_dll_and_loader_path = 'C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/api/lib/'  # Directory containing DLLs, ExternalLoader and FlashLoader.
+api_dll_and_loader_path = 'C:/Program Files (x86)/STMicroelectronics/STM32Cube/STM32CubeProgrammer32/api/lib/'  # Directory containing DLLs, ExternalLoader and FlashLoader.
 import os  # noqa: E402
 os.add_dll_directory(api_dll_and_loader_path)  # Path to DLLs before importing CubeProgrammer_API. https://stackoverflow.com/a/67437837/101252
 # noinspection PyUnresolvedReferences
