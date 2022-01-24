@@ -1,3 +1,14 @@
+
+/*******************************************************************************
+ *
+ * Copyright (C) 2021 STMicroelectronics - All rights reserved
+ *
+ * This file is part of STM32CubeProgrammer project.
+ *
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ *
+ ******************************************************************************/ 
 #ifndef DEVICEDATASTRUCTURE
 #define DEVICEDATASTRUCTURE
 
@@ -15,7 +26,6 @@ extern "C" {
 /* -------------------------------------------------------------------------------------------- */
 /*                                  OB Data Structures                                          */
 /* -------------------------------------------------------------------------------------------- */
-
 
 /**
  * \struct  bankSector.
@@ -51,6 +61,8 @@ typedef struct storageStructure
 }storageStructure;
 
 
+
+
 /**
  * \struct  bitCoefficient_C.
  * \brief   This stucture indicates the coefficients to access to the adequate option bit.
@@ -69,7 +81,7 @@ typedef struct bitCoefficient_C
 typedef struct bitValue_C
 {
     unsigned int value;             /**< Option bit value. */
-    char description[200];          /**< Option bit description. */
+    char description[1000];          /**< Option bit description. */
 }bitValue_C;
 
 
@@ -81,7 +93,7 @@ typedef struct bitValue_C
 typedef struct bit_C
 {
     char name[32];                  /**< Bit name such as RDP, BOR_LEV, nBOOT0... */
-    char description[300];          /**< Config description. */
+    char description[1000];          /**< Config description. */
     unsigned int wordOffset;       /**< Word offset. */
     unsigned int bitOffset;        /**< Bit offset. */
     unsigned int bitWidth;         /**< Number of bits build the option. */
@@ -128,7 +140,7 @@ typedef struct bank_C
 typedef struct peripheral_C
 {
     char name[32];                  /**< Peripheral name. */
-    char description[200];          /**< Peripheral description. */
+    char description[1000];          /**< Peripheral description. */
     unsigned int banksNbr;         /**< Number of existed banks. */
     bank_C** banks;                 /**< Get banks descriptions #Bank_C. */
 }peripheral_C;

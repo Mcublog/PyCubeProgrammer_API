@@ -283,6 +283,7 @@ typedef struct usartConnectParameters
     int statusDTR;                  /**< DTR: Value in {0,1}. */
     unsigned char noinitBits;       /**< Set No Init bits: value in {0,1}. */
     char rdu;                       /**< request a read unprotect: value in {0,1}.*/
+    char tzenreg;                       /**< request a TZEN regression: value in {0,1}.*/
 }usartConnectParameters;
 
 /**
@@ -293,6 +294,9 @@ typedef struct dfuConnectParameters
 {
     char *usb_index;
     char rdu;                       /**< request a read unprotect: value in {0,1}.*/
+    char tzenreg;                       /**< request a TZEN regression: value in {0,1}.*/
+
+
 }dfuConnectParameters;
 
 
@@ -792,6 +796,15 @@ int sectorErase(unsigned int sectors[],unsigned int sectorNbr, char* sFlashMemNa
  * \note Depending on the device used, this routine take a specific time.
  */
 int readUnprotect();
+
+
+
+/**
+ * \brief This routine allows the TZEN Option Byte regression.
+ * \return 0 if the disabling correctly accomplished, otherwise an error occurred.
+ * \note Depending on the device used, this routine take a specific time.
+ */
+int tzenRegression();
 
 
 /**
